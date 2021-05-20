@@ -14,8 +14,12 @@ from geopy.distance import distance
 
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import NeighborhoodComponentsAnalysis, KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
@@ -92,10 +96,11 @@ class DcsData:
             exit(-1)
         print('Creating data frame using Sliding Window technique...')
         start = time.time()
+        index = 0
         for entity in self.entityTypes:
+            print('Processing {}'.format(entity))
             subset = self.xyDf.loc[self.xyDf['entityType'] == entity]  # retrieve all rows per aircraft
             indexed_list = list(range(0, len(subset) - self.windowSize, self.stepSize))
-            index = 0
             for i in indexed_list:
                 self.windowDf.at[index, 'entityType'] = subset['entityType'].iloc[i]
                 self.windowDf.at[index, 'Velocity'] = subset['Velocity'].iloc[i:i + self.windowSize]
@@ -117,8 +122,6 @@ class DcsData:
         colLabels = ['windowID', 'timeID'] + self.cols
         flatWindowDFList = []
         for iWindow in range(nWindows):
-            if iWindow % 10 == 0:
-                print(iWindow)
             e = self.windowDf['entityType'].iloc[iWindow]
             v = self.windowDf['Velocity'].iloc[iWindow]
             a = self.windowDf['Altitude'].iloc[iWindow]
@@ -154,6 +157,9 @@ class DcsData:
 
         self.gaussian(X_train, X_test, y_train[:, 0], y_test[:, 0])
         self.svc(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        self.decision_tree(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        self.knn_ncs(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        self.random_forest(X_train, X_test, y_train[:, 0], y_test[:, 0])
 
     def gaussian(self, X_train, X_test, y_train, y_test):
         start = time.time()
@@ -172,6 +178,34 @@ class DcsData:
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nSVM: {}'.format(score))
         self.app_metrics.set_svm_score(score)
+
+    def decision_tree(self, X_train, X_test, y_train, y_test):
+        start = time.time()
+        clf = DecisionTreeClassifier(random_state=1)
+        clf.fit(X_train, y_train)
+        self.app_metrics.set_decision_tree_time(time.time() - start)
+        score = '{}%'.format(clf.score(X_test, y_test) * 100)
+        print('\nDecision tree: {}'.format(score))
+        self.app_metrics.set_decision_tree_score(score)
+
+    # see: https://scikit-learn.org/stable/modules/neighbors.html#id4
+    def knn_ncs(self, X_train, X_test, y_train, y_test):
+        start = time.time()
+        nca = NeighborhoodComponentsAnalysis(random_state=1)
+        knn = KNeighborsClassifier(n_neighbors=3)
+        nca_pipe = Pipeline([('nca', nca), ('knn', knn)])
+        nca_pipe.fit(X_train, y_train)
+        self.app_metrics.set_nca_knn_time(time.time() - start)
+        score = '{}%'.format(nca_pipe.score(X_test, y_test) * 100)
+        print('\nKNN & NCS: {}'.format(score))
+        self.app_metrics.set_nca_knn_score(score)
+
+    def random_forest(self, X_train, X_test, y_train, y_test):
+        start = time.time()
+        clf = RandomForestClassifier(n_estimators=100, random_state=1)
+        clf.fit(X_train, y_train)
+        score = '{}%'.format(clf.score(X_test, y_test) * 100)
+        print('\nRandom Forest: {}'.format(score))
 
     def run(self):
         if (os.path.exists(self.xyDfPickle) and os.path.exists(self.entityNpy)) and not self.rerun:

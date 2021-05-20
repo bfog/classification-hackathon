@@ -14,9 +14,13 @@ class Metrics:
         self.featureExtractionPerf = 0
         self.gaussianPerf = 0
         self.svmPerf = 0
+        self.decisionTreePerf = 0
+        self.nca_knnPerf = 0
 
         self.gaussianScore = ''
         self.svmScore = ''
+        self.decisionTreeScore = ''
+        self.nca_knnScore = ''
 
     def set_xy(self, time):
         self.xyPerf = time
@@ -33,17 +37,29 @@ class Metrics:
     def set_svm_time(self, time):
         self.svmPerf = time
 
+    def set_decision_tree_time(self, time):
+        self.decisionTreePerf = time
+
+    def set_nca_knn_time(self, time):
+        self.nca_knnPerf = time
+
     def set_gaussian_score(self, score):
         self.gaussianScore = score
 
     def set_svm_score(self, score):
         self.svmScore = score
 
+    def set_decision_tree_score(self, score):
+        self.decisionTreeScore = score
+
+    def set_nca_knn_score(self, score):
+        self.nca_knnScore = score
+
     def write(self):
         if not os.path.exists('metrics'):
             os.mkdir('metrics')
 
-        totalTime = self.xyPerf + self.windowPerf + self.featureExtractionPerf + self.gaussianPerf + self.svmPerf
+        totalTime = self.xyPerf + self.windowPerf + self.featureExtractionPerf + self.gaussianPerf + self.svmPerf + self.decisionTreePerf + self.nca_knnPerf
         out = 'Route used: {}\n' \
               'Window size: {}\n' \
               'Step size: {}\n' \
@@ -54,14 +70,17 @@ class Metrics:
               '\n*Gaussian Training: {}s\n*SVM Training: {}s\n\nTotal time: {}s' \
               '\n\nML Model scores:' \
               '\n*Gaussian NB: {}' \
-              '\n*SVM: {}'\
+              '\n*SVM: {}' \
+              '\n*Decision Tree: {}' \
+              '\n*NCA & KNN: {}'\
             .format(self.route, self.windowSize, self.step_size, self.test_size,
                     'Yes' if self.useUnknown else 'No', self.xyPerf, self.windowPerf, self.featureExtractionPerf,
-                    self.gaussianPerf, self.svmPerf, totalTime, self.gaussianScore, self.svmScore)
+                    self.gaussianPerf, self.svmPerf, totalTime, self.gaussianScore, self.svmScore, self.decisionTreeScore,
+                    self.nca_knnScore)
 
         output_loc = 'metrics/{}_{}.log'.format(self.route, datetime.now().strftime('%Y%m%d_%H%M%S'))
 
         with open(output_loc, 'w+') as f:
             f.write(out)
 
-        print('Wrote metrics to: {}\n'.format(output_loc))
+        print('\nWrote metrics to: {}\n'.format(output_loc))

@@ -5,7 +5,7 @@ import argparse
 
 
 def run(args):
-    appMetrics = metrics.Metrics()
+    appMetrics = metrics.Metrics(args)
 
     data = data_set.DcsData(args, appMetrics)
     data.run()
@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--rerun', help='Rerun data preprocessing', action='store_true')
     parser.add_argument('-w', '--window_size', type=int, default=300, help='Sliding window size')
     parser.add_argument('-s', '--step_size', type=int, default=100, help='Step size')
+    parser.add_argument('-t', '--test_size', type=float, default=0.2, help='Test split size')
 
     run(parser.parse_args())
 

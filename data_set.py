@@ -158,7 +158,7 @@ class DcsData:
         self.gaussian(X_train, X_test, y_train[:, 0], y_test[:, 0])
         self.svc(X_train, X_test, y_train[:, 0], y_test[:, 0])
         self.decision_tree(X_train, X_test, y_train[:, 0], y_test[:, 0])
-        self.knn_ncs(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        self.knn_nca(X_train, X_test, y_train[:, 0], y_test[:, 0])
         self.random_forest(X_train, X_test, y_train[:, 0], y_test[:, 0])
 
     def gaussian(self, X_train, X_test, y_train, y_test):
@@ -189,7 +189,7 @@ class DcsData:
         self.app_metrics.set_decision_tree_score(score)
 
     # see: https://scikit-learn.org/stable/modules/neighbors.html#id4
-    def knn_ncs(self, X_train, X_test, y_train, y_test):
+    def knn_nca(self, X_train, X_test, y_train, y_test):
         start = time.time()
         nca = NeighborhoodComponentsAnalysis(random_state=1)
         knn = KNeighborsClassifier(n_neighbors=3)
@@ -197,15 +197,18 @@ class DcsData:
         nca_pipe.fit(X_train, y_train)
         self.app_metrics.set_nca_knn_time(time.time() - start)
         score = '{}%'.format(nca_pipe.score(X_test, y_test) * 100)
-        print('\nKNN & NCS: {}'.format(score))
+        print('\nKNN & NCA: {}'.format(score))
         self.app_metrics.set_nca_knn_score(score)
 
     def random_forest(self, X_train, X_test, y_train, y_test):
         start = time.time()
         clf = RandomForestClassifier(n_estimators=100, random_state=1)
         clf.fit(X_train, y_train)
+        self.app_metrics.set_random_forest_time(time.time() - start)
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nRandom Forest: {}'.format(score))
+        self.app_metrics.set_random_forest_score(score)
+
 
     def run(self):
         if (os.path.exists(self.xyDfPickle) and os.path.exists(self.entityNpy)) and not self.rerun:

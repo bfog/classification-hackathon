@@ -130,3 +130,41 @@ Best score: **0.8167626238791883**
 
 
 Execute Random Forest with best parameters: **83.56%**
+
+# Run 4
+Execution Time: 1094s
+
+UsedParameters: **[{'n_estimators': [500, 1000, 2000], 'criterion': ['gini', 'entropy'], 'max_features': ['sqrt', 'log2']}]**
+
+Best params: **{'criterion': 'entropy', 'max_features': 'sqrt', 'n_estimators': 500}**
+
+Best score: **0.8186078338839075**
+
+#### Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.90      0.84      0.87        45
+           1       0.85      0.80      0.83        41
+           2       0.74      0.73      0.74        48
+           3       0.85      0.88      0.87        26
+           4       0.84      0.55      0.67        29
+           5       0.76      0.96      0.85        71
+           6       0.97      0.91      0.94        35
+           7       0.90      0.64      0.75        14
+           8       0.68      0.54      0.60        28
+           9       0.78      0.40      0.53        35
+          10       1.00      0.87      0.93        15
+          11       0.98      0.99      0.98        92
+          12       0.93      0.79      0.86        34
+          13       0.67      0.67      0.67         6
+          14       0.85      0.93      0.89        43
+          15       0.88      0.82      0.85        28
+          16       0.88      0.90      0.89        51
+          17       0.76      0.89      0.82       174
+
+    accuracy                           0.84       815
+    macro avg      0.85      0.78      0.81       815
+    weighted avg   0.84      0.84      0.83       815
+
+
+Execute Random Forest with best parameters: **83.80%**

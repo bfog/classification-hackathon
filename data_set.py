@@ -21,7 +21,8 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
 
 
 class DcsData:
@@ -32,6 +33,7 @@ class DcsData:
         self.data = args.data
         self.unknown = args.unknown
         self.rerun = args.rerun
+        self.useGridSearch = args.grid_search
         self.windowSize = args.window_size
         self.stepSize = args.step_size
         self.testSize = args.test_size
@@ -84,7 +86,7 @@ class DcsData:
                                'Latitude', 'Roll', 'Pitch', 'Yaw', 'U', 'V'], axis=1, inplace=True)
                 self.xyDf = pd.concat([self.xyDf, dcs_data])  # merge temp df into parent df
                 print('Processed {}'.format(x))
-            self.app_metrics.set_xy(time.time() - start)  # pass time taken
+            self.app_metrics.xyPerf = time.time() - start  # pass time taken
             self.xyDf.to_pickle(self.xyDfPickle)
             print('Wrote to pickle file: {}\n'.format(self.xyDfPickle))
             self.entityTypes = np.array(entities)
@@ -107,7 +109,7 @@ class DcsData:
                 self.windowDf.at[index, 'Altitude'] = subset['Altitude'].iloc[i:i + self.windowSize]
                 self.windowDf.at[index, 'Heading'] = subset['Heading'].iloc[i:i + self.windowSize]
                 index += 1
-        self.app_metrics.set_window(time.time() - start)
+        self.app_metrics.windowPerf = time.time() - start
         self.windowDf.to_pickle(self.windowDfPickle)
         print('Wrote to pickle file: {}\n'.format(self.windowDfPickle))
 
@@ -140,7 +142,7 @@ class DcsData:
         impute(extractedFeaturesDF)
         self.labelData = (yDataDuplicateDF.drop_duplicates(subset='windowID'))['entityType']
         self.featureData = select_features(extractedFeaturesDF, self.labelData.to_numpy())
-        self.app_metrics.set_feature_extraction(time.time() - start)
+        self.app_metrics.featureExtractionPerf = time.time() - start
         self.featureData.to_pickle(self.featuresPickle)
         self.labelData.to_pickle(self.labelPickle)
 
@@ -159,34 +161,34 @@ class DcsData:
         self.svc(X_train, X_test, y_train[:, 0], y_test[:, 0])
         self.decision_tree(X_train, X_test, y_train[:, 0], y_test[:, 0])
         self.knn_nca(X_train, X_test, y_train[:, 0], y_test[:, 0])
-        self.random_forest(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        self.grid_search_rf(X_train, X_test, y_train[:, 0], y_test[:, 0])
 
     def gaussian(self, X_train, X_test, y_train, y_test):
         start = time.time()
         clf = GaussianNB()
         clf.fit(X_train.to_numpy(), y_train)
-        self.app_metrics.set_gaussian_time(time.time() - start)
+        self.app_metrics.gaussianPerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nGaussian NB: {}'.format(score))
-        self.app_metrics.set_gaussian_score(score)
+        self.app_metrics.gaussianScore = score
 
     def svc(self, X_train, X_test, y_train, y_test):
         start = time.time()
         clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))
         clf.fit(X_train, y_train)
-        self.app_metrics.set_svm_time(time.time() - start)
+        self.app_metrics.svmPerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nSVM: {}'.format(score))
-        self.app_metrics.set_svm_score(score)
+        self.app_metrics.svmScore = score
 
     def decision_tree(self, X_train, X_test, y_train, y_test):
         start = time.time()
         clf = DecisionTreeClassifier(random_state=1)
         clf.fit(X_train, y_train)
-        self.app_metrics.set_decision_tree_time(time.time() - start)
+        self.app_metrics.decisionTreePerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nDecision tree: {}'.format(score))
-        self.app_metrics.set_decision_tree_score(score)
+        self.app_metrics.set_decision_tree_score = score
 
     # see: https://scikit-learn.org/stable/modules/neighbors.html#id4
     def knn_nca(self, X_train, X_test, y_train, y_test):
@@ -195,20 +197,39 @@ class DcsData:
         knn = KNeighborsClassifier(n_neighbors=3)
         nca_pipe = Pipeline([('nca', nca), ('knn', knn)])
         nca_pipe.fit(X_train, y_train)
-        self.app_metrics.set_nca_knn_time(time.time() - start)
+        self.app_metrics.set_nca_knn_time = time.time() - start
         score = '{}%'.format(nca_pipe.score(X_test, y_test) * 100)
         print('\nKNN & NCA: {}'.format(score))
-        self.app_metrics.set_nca_knn_score(score)
+        self.app_metrics.set_nca_knn_score = score
 
-    def random_forest(self, X_train, X_test, y_train, y_test):
+    def grid_search_rf(self, X_train, X_test, y_train, y_test):
+        print('Random forest:')
         start = time.time()
-        clf = RandomForestClassifier(n_estimators=100, random_state=1)
+        if self.useGridSearch:
+            print('\nGridSearchCV:\n')
+            parameters = [{'n_estimators': [140, 150, 160], 'criterion': ['gini', 'entropy'],
+                           'max_features': ['sqrt', 'log2']}]
+            grid_search = GridSearchCV(estimator=RandomForestClassifier(), param_grid=parameters, scoring='accuracy', cv=10, n_jobs=-1, verbose=10)
+            grid_search.fit(X_train, y_train)
+            y_true, y_pred = y_test, grid_search.predict(X_test)
+            out = '\n\nGrid search for Random Forest:\nExecution Time: {}\nUsedParameters {}\nBest params:\n{}\nBest score: {}\n***Classification Report:{}'\
+                .format(time.time() - start, parameters, grid_search.best_params_, grid_search.best_score_, classification_report(y_true, y_pred))
+            print(out)
+            self.app_metrics.gridSearchMetrics = out
+            print('Executing Random Forest with best paramaters...')
+            self.random_forest(X_train, X_test, y_train, y_test, grid_search.best_params_)
+        else:
+            params = {'n_estimators':100, 'random_state':1}
+            self.random_forest(X_train, X_test, y_train, y_test, params)
+
+    def random_forest(self, X_train, X_test, y_train, y_test, params):
+        start = time.time()
+        clf = RandomForestClassifier(**params)
         clf.fit(X_train, y_train)
-        self.app_metrics.set_random_forest_time(time.time() - start)
+        self.app_metrics.random_forestPerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nRandom Forest: {}'.format(score))
-        self.app_metrics.set_random_forest_score(score)
-
+        self.app_metrics.random_forestScore = score
 
     def run(self):
         if (os.path.exists(self.xyDfPickle) and os.path.exists(self.entityNpy)) and not self.rerun:

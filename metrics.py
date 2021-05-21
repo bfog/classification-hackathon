@@ -24,44 +24,7 @@ class Metrics:
         self.nca_knnScore = ''
         self.random_forestScore = ''
 
-    def set_xy(self, time):
-        self.xyPerf = time
-
-    def set_window(self, time):
-        self.windowPerf = time
-
-    def set_feature_extraction(self, time):
-        self.featureExtractionPerf = time
-
-    def set_gaussian_time(self, time):
-        self.gaussianPerf = time
-
-    def set_svm_time(self, time):
-        self.svmPerf = time
-
-    def set_decision_tree_time(self, time):
-        self.decisionTreePerf = time
-
-    def set_nca_knn_time(self, time):
-        self.nca_knnPerf = time
-
-    def set_random_forest_time(self, time):
-        self.random_forestPerf = time
-
-    def set_gaussian_score(self, score):
-        self.gaussianScore = score
-
-    def set_svm_score(self, score):
-        self.svmScore = score
-
-    def set_decision_tree_score(self, score):
-        self.decisionTreeScore = score
-
-    def set_nca_knn_score(self, score):
-        self.nca_knnScore = score
-
-    def set_random_forest_score(self, score):
-        self.random_forestScore = score
+        self.gridSearchMetrics = ''
 
     def write(self):
         if not os.path.exists('metrics'):
@@ -81,12 +44,13 @@ class Metrics:
               '\n*SVM: {}' \
               '\n*Decision Tree: {}' \
               '\n*NCA & KNN: {}' \
-              '\n*Random Forest: {}'\
+              '\n*Random Forest: {}' \
+              '\n{}'\
             .format(self.route, self.windowSize, self.step_size, self.test_size,
                     'Yes' if self.useUnknown else 'No', self.xyPerf, self.windowPerf, self.featureExtractionPerf,
                     self.gaussianPerf, self.svmPerf, self.decisionTreePerf, self.nca_knnPerf, self.random_forestPerf, totalTime,
                     self.gaussianScore, self.svmScore, self.decisionTreeScore,
-                    self.nca_knnScore, self.random_forestScore)
+                    self.nca_knnScore, self.random_forestScore, self.gridSearchMetrics)
 
         output_loc = 'metrics/{}_{}.log'.format(self.route, datetime.now().strftime('%Y%m%d_%H%M%S'))
 

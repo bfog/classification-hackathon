@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--window_size', type=int, default=300, help='Sliding window size')
     parser.add_argument('-s', '--step_size', type=int, default=100, help='Step size')
     parser.add_argument('-t', '--test_size', type=float, default=0.2, help='Test split size')
+    parser.add_argument('-g', '--grid_search', help='Use GridSearchCV to optimise model parameters, takes long time to run', action='store_true')
 
     run(parser.parse_args())
 

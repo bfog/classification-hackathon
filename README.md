@@ -55,6 +55,7 @@ Best score: **0.8146210476639923**
     macro avg      0.85      0.79      0.81       815
     weighted avg   0.84      0.84      0.83       815
 
+Execute Random Forest with best parameters: **84.42%**
 
 # Run 2
 Execution Time: 159s
@@ -90,7 +91,7 @@ Best score: **0.8167663992449269**
     macro avg      0.83      0.77      0.79       815
     weighted avg   0.83      0.82      0.82       815
 
-Execute Random Forest with best parameters: **84.42%**
+Execute Random Forest with best parameters: **83.56%**
 
 # Run 3
 Execution Time: 273s

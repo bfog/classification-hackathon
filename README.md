@@ -26,7 +26,7 @@ Random Forest base parameters were set to the default values: n_estimators: 100,
 # Run 2
 
 # Run 3
-Execution Time: 159.33709740638733
+Execution Time: 159s
 
 UsedParameters [{'n_estimators': [140, 150, 160], 'criterion': ['gini', 'entropy'], 'max_features': ['sqrt', 'log2']}]
 Best params:

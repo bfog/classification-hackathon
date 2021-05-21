@@ -9,7 +9,7 @@ A 2 week hackathon conducted to develop a classification learning agent which is
 * Step size: 100
 * Test split: 0.2
 * Use unknowns: Yes
-Features used: Velocity, Altitude, Heading
+*Features used: Velocity, Altitude, Heading
 
 ### Base scores:
 * Gaussian NB: 11.78%

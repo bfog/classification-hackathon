@@ -28,10 +28,12 @@ Random Forest base parameters were set to the default values: n_estimators: 100,
 # Run 3
 Execution Time: 159s
 
-UsedParameters [{'n_estimators': [140, 150, 160], 'criterion': ['gini', 'entropy'], 'max_features': ['sqrt', 'log2']}]
-Best params:
-{'criterion': 'entropy', 'max_features': 'sqrt', 'n_estimators': 160}
-Best score: 0.8146210476639923
+UsedParameters: **[{'n_estimators': [140, 150, 160], 'criterion': ['gini', 'entropy'], 'max_features': ['sqrt', 'log2']}]**
+
+Best params: **{'criterion': 'entropy', 'max_features': 'sqrt', 'n_estimators': 160}**
+
+Best score: **0.8146210476639923**
+
 #### Classification Report:
        |        | precision |   recall | f1-score  | support |
        |        | --------  | -------- | --------  | ------- |

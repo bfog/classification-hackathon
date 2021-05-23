@@ -5,7 +5,7 @@ A 2 week hackathon conducted to develop a classification learning agent which is
 
 ### Configuration:
 * Route used: Route 1
-* Window size: 300
+* Window size: 350
 * Step size: 100
 * Test split: 0.2
 * Use unknowns: Yes
@@ -168,3 +168,24 @@ Best score: **0.8186078338839075**
 
 
 Execute Random Forest with best parameters: **83.80%**
+
+## Additional Features
+
+The addition of Roll, Pitch and Yaw data increased accuracy by a large amount, as seen below.
+
+### Configuration:
+* Route used: Route 1
+* Window size: 350
+* Step size: 100
+* Test split: 0.2
+* Use unknowns: Yes
+* Features used: Velocity, Altitude, Heading, **Roll**, **Pitch**, **Yaw**
+
+Execution Time: 39s (excluding data pre-processing)
+
+### ML Model scores (Increase from base):
+* Gaussian NB: 11.28834355828221% **(+0.492%)**
+* SVM: 42.08588957055215% **(+2.58%)**
+* Decision Tree: 82.82208588957054% **(+11.90%)**
+* NCA & KNN: 52.26993865030675% **(+11.53%)**
+* Random Forest: 90.920245398773% **(+8.96%)**

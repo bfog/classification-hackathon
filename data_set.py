@@ -37,7 +37,7 @@ class DcsData:
         self.windowSize = args.window_size
         self.stepSize = args.step_size
         self.testSize = args.test_size
-        self.cols = ['entityType', 'Velocity', 'Altitude', 'Heading']
+        self.cols = ['entityType', 'Velocity', 'Altitude', 'Heading', 'Roll', 'Pitch', 'Yaw']
 
         self.xyDf = pd.DataFrame(columns=self.cols)
         self.xyDfPickle = 'pickles/dataFrame_{}_{}.pkl'.format(self.windowSize, self.stepSize)
@@ -83,7 +83,7 @@ class DcsData:
                 velocities = np.append(velocities, velocities[[-1]])
                 dcs_data['Velocity'] = velocities
                 dcs_data.drop(['timestamp', 'id', 'entityClass', 'Longitude',
-                               'Latitude', 'Roll', 'Pitch', 'Yaw', 'U', 'V'], axis=1, inplace=True)
+                               'Latitude', 'U', 'V'], axis=1, inplace=True)
                 self.xyDf = pd.concat([self.xyDf, dcs_data])  # merge temp df into parent df
                 print('Processed {}'.format(x))
             self.app_metrics.xyPerf = time.time() - start  # pass time taken
@@ -108,6 +108,9 @@ class DcsData:
                 self.windowDf.at[index, 'Velocity'] = subset['Velocity'].iloc[i:i + self.windowSize]
                 self.windowDf.at[index, 'Altitude'] = subset['Altitude'].iloc[i:i + self.windowSize]
                 self.windowDf.at[index, 'Heading'] = subset['Heading'].iloc[i:i + self.windowSize]
+                self.windowDf.at[index, 'Roll'] = subset['Roll'].iloc[i:i + self.windowSize]
+                self.windowDf.at[index, 'Pitch'] = subset['Pitch'].iloc[i:i + self.windowSize]
+                self.windowDf.at[index, 'Yaw'] = subset['Yaw'].iloc[i:i + self.windowSize]
                 index += 1
         self.app_metrics.windowPerf = time.time() - start
         self.windowDf.to_pickle(self.windowDfPickle)
@@ -128,15 +131,18 @@ class DcsData:
             v = self.windowDf['Velocity'].iloc[iWindow]
             a = self.windowDf['Altitude'].iloc[iWindow]
             h = self.windowDf['Heading'].iloc[iWindow]
-            dataList = [[iWindow, n, e, v.iloc[n], a.iloc[n], h.iloc[n]] for n in range(nSeriesSize)]
+            r = self.windowDf['Roll'].iloc[iWindow]
+            p = self.windowDf['Pitch'].iloc[iWindow]
+            y = self.windowDf['Yaw'].iloc[iWindow]
+            dataList = [[iWindow, n, e, v.iloc[n], a.iloc[n], h.iloc[n], r.iloc[n], p.iloc[n], y.iloc[n]] for n in range(nSeriesSize)]
             flatWindowDFList.append(pd.DataFrame(dataList, columns=colLabels))
         self.flatWindowDF = pd.concat(flatWindowDFList)
         self.flatWindowDF.to_pickle(self.flatWindowPickle)
 
     def generate_features(self):
         start = time.time()
-        self.flatWindowDF.astype({'windowID': int, 'timeID': int, 'entityType': str, 'Velocity': float, 'Altitude': float, 'Heading': float})
-        xDataDF = self.flatWindowDF[['windowID', 'timeID', 'Velocity', 'Altitude', 'Heading']]
+        self.flatWindowDF.astype({'windowID': int, 'timeID': int, 'entityType': str, 'Velocity': float, 'Altitude': float, 'Heading': float, 'Roll': float, 'Pitch': float, 'Yaw': float})
+        xDataDF = self.flatWindowDF[['windowID', 'timeID', 'Velocity', 'Altitude', 'Heading', 'Roll', 'Pitch', 'Yaw']]
         yDataDuplicateDF = self.flatWindowDF[['windowID', 'entityType']]
         extractedFeaturesDF = extract_features(xDataDF, column_id='windowID', column_sort="timeID", column_kind=None, column_value=None)
         impute(extractedFeaturesDF)
@@ -166,7 +172,7 @@ class DcsData:
     def gaussian(self, X_train, X_test, y_train, y_test):
         start = time.time()
         clf = GaussianNB()
-        clf.fit(X_train.to_numpy(), y_train)
+        clf.fit(X_train, y_train)
         self.app_metrics.gaussianPerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nGaussian NB: {}'.format(score))
@@ -183,12 +189,12 @@ class DcsData:
 
     def decision_tree(self, X_train, X_test, y_train, y_test):
         start = time.time()
-        clf = DecisionTreeClassifier(random_state=1)
+        clf = make_pipeline(StandardScaler(), DecisionTreeClassifier(random_state=1))
         clf.fit(X_train, y_train)
         self.app_metrics.decisionTreePerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)
         print('\nDecision tree: {}'.format(score))
-        self.app_metrics.set_decision_tree_score = score
+        self.app_metrics.decisionTreeScore = score
 
     # see: https://scikit-learn.org/stable/modules/neighbors.html#id4
     def knn_nca(self, X_train, X_test, y_train, y_test):
@@ -197,34 +203,34 @@ class DcsData:
         knn = KNeighborsClassifier(n_neighbors=3)
         nca_pipe = Pipeline([('nca', nca), ('knn', knn)])
         nca_pipe.fit(X_train, y_train)
-        self.app_metrics.set_nca_knn_time = time.time() - start
+        self.app_metrics.nca_knnPerf = time.time() - start
         score = '{}%'.format(nca_pipe.score(X_test, y_test) * 100)
         print('\nKNN & NCA: {}'.format(score))
-        self.app_metrics.set_nca_knn_score = score
+        self.app_metrics.nca_knnScore = score
 
     def grid_search_rf(self, X_train, X_test, y_train, y_test):
-        print('Random forest:')
+        print('\nRandom forest:')
         start = time.time()
         if self.useGridSearch:
             print('\nGridSearchCV:\n')
-            parameters = [{'n_estimators': [140, 150, 160], 'criterion': ['gini', 'entropy'],
+            parameters = [{'n_estimators': [500, 1000, 2000], 'criterion': ['gini', 'entropy'],
                            'max_features': ['sqrt', 'log2']}]
             grid_search = GridSearchCV(estimator=RandomForestClassifier(), param_grid=parameters, scoring='accuracy', cv=10, n_jobs=-1, verbose=10)
             grid_search.fit(X_train, y_train)
             y_true, y_pred = y_test, grid_search.predict(X_test)
-            out = '\n\nGrid search for Random Forest:\nExecution Time: {}\nUsedParameters {}\nBest params:\n{}\nBest score: {}\n***Classification Report:{}'\
+            out = '\n\nGrid search for Random Forest:\nExecution Time: {}\nUsedParameters {}\nBest params:\n{}\nBest score: {}\n***Classification Report:\n{}'\
                 .format(time.time() - start, parameters, grid_search.best_params_, grid_search.best_score_, classification_report(y_true, y_pred))
             print(out)
             self.app_metrics.gridSearchMetrics = out
             print('Executing Random Forest with best paramaters...')
             self.random_forest(X_train, X_test, y_train, y_test, grid_search.best_params_)
         else:
-            params = {'n_estimators':100, 'random_state':1}
+            params = {'n_estimators':500, 'criterion': 'entropy', 'max_features': 'sqrt'}
             self.random_forest(X_train, X_test, y_train, y_test, params)
 
     def random_forest(self, X_train, X_test, y_train, y_test, params):
         start = time.time()
-        clf = RandomForestClassifier(**params)
+        clf = make_pipeline(StandardScaler(), RandomForestClassifier(**params, n_jobs=-1, verbose=1))
         clf.fit(X_train, y_train)
         self.app_metrics.random_forestPerf = time.time() - start
         score = '{}%'.format(clf.score(X_test, y_test) * 100)

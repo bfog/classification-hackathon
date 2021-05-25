@@ -37,7 +37,7 @@ class DcsData:
         self.windowSize = args.window_size
         self.stepSize = args.step_size
         self.testSize = args.test_size
-        self.cols = ['entityType', 'Velocity', 'Altitude', 'Heading', 'Roll', 'Pitch', 'Yaw']
+        self.cols = ['entityType', 'Velocity', 'Altitude', 'Heading']
 
         self.xyDf = pd.DataFrame(columns=self.cols)
         self.xyDfPickle = 'pickles/dataFrame_{}_{}.pkl'.format(self.windowSize, self.stepSize)
@@ -83,7 +83,7 @@ class DcsData:
                 velocities = np.append(velocities, velocities[[-1]])
                 dcs_data['Velocity'] = velocities
                 dcs_data.drop(['timestamp', 'id', 'entityClass', 'Longitude',
-                               'Latitude', 'U', 'V'], axis=1, inplace=True)
+                               'Latitude', 'U', 'V', 'Roll', 'Pitch', 'Yaw'], axis=1, inplace=True)
                 self.xyDf = pd.concat([self.xyDf, dcs_data])  # merge temp df into parent df
                 print('Processed {}'.format(x))
             self.app_metrics.xyPerf = time.time() - start  # pass time taken
@@ -108,9 +108,6 @@ class DcsData:
                 self.windowDf.at[index, 'Velocity'] = subset['Velocity'].iloc[i:i + self.windowSize]
                 self.windowDf.at[index, 'Altitude'] = subset['Altitude'].iloc[i:i + self.windowSize]
                 self.windowDf.at[index, 'Heading'] = subset['Heading'].iloc[i:i + self.windowSize]
-                self.windowDf.at[index, 'Roll'] = subset['Roll'].iloc[i:i + self.windowSize]
-                self.windowDf.at[index, 'Pitch'] = subset['Pitch'].iloc[i:i + self.windowSize]
-                self.windowDf.at[index, 'Yaw'] = subset['Yaw'].iloc[i:i + self.windowSize]
                 index += 1
         self.app_metrics.windowPerf = time.time() - start
         self.windowDf.to_pickle(self.windowDfPickle)
@@ -131,18 +128,15 @@ class DcsData:
             v = self.windowDf['Velocity'].iloc[iWindow]
             a = self.windowDf['Altitude'].iloc[iWindow]
             h = self.windowDf['Heading'].iloc[iWindow]
-            r = self.windowDf['Roll'].iloc[iWindow]
-            p = self.windowDf['Pitch'].iloc[iWindow]
-            y = self.windowDf['Yaw'].iloc[iWindow]
-            dataList = [[iWindow, n, e, v.iloc[n], a.iloc[n], h.iloc[n], r.iloc[n], p.iloc[n], y.iloc[n]] for n in range(nSeriesSize)]
+            dataList = [[iWindow, n, e, v.iloc[n], a.iloc[n], h.iloc[n]] for n in range(nSeriesSize)]
             flatWindowDFList.append(pd.DataFrame(dataList, columns=colLabels))
         self.flatWindowDF = pd.concat(flatWindowDFList)
         self.flatWindowDF.to_pickle(self.flatWindowPickle)
 
     def generate_features(self):
         start = time.time()
-        self.flatWindowDF.astype({'windowID': int, 'timeID': int, 'entityType': str, 'Velocity': float, 'Altitude': float, 'Heading': float, 'Roll': float, 'Pitch': float, 'Yaw': float})
-        xDataDF = self.flatWindowDF[['windowID', 'timeID', 'Velocity', 'Altitude', 'Heading', 'Roll', 'Pitch', 'Yaw']]
+        self.flatWindowDF.astype({'windowID': int, 'timeID': int, 'entityType': str, 'Velocity': float, 'Altitude': float, 'Heading': float})
+        xDataDF = self.flatWindowDF[['windowID', 'timeID', 'Velocity', 'Altitude', 'Heading']]
         yDataDuplicateDF = self.flatWindowDF[['windowID', 'entityType']]
         extractedFeaturesDF = extract_features(xDataDF, column_id='windowID', column_sort="timeID", column_kind=None, column_value=None)
         impute(extractedFeaturesDF)

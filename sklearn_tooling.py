@@ -21,7 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
 
 
-class Models:
+class SklearnTooling:
     def __init__(self, label_encoder: LabelEncoder,
                  feature_data: pd.DataFrame,
                  label_data: pd.DataFrame,
@@ -35,7 +35,7 @@ class Models:
         self.appMetrics = app_metrics
         self.useGridSearch = grid_search
 
-    def run_classifiers(self, entity_types: np.array):
+    def run_classifiers(self, parameters, entity_types: np.array):
         X_train, X_test, y_train, y_test = train_test_split(self.featureData, self.labelData,
                                                             test_size=self.testSize, random_state=1)
 
@@ -44,11 +44,12 @@ class Models:
         y_train = self.reshape_y_data(y_train)
         y_test = self.reshape_y_data(y_test)
 
-        self.gaussian(X_train, X_test, y_train[:, 0], y_test[:, 0])
-        self.svc(X_train, X_test, y_train[:, 0], y_test[:, 0])
-        self.decision_tree(X_train, X_test, y_train[:, 0], y_test[:, 0])
-        self.knn_nca(X_train, X_test, y_train[:, 0], y_test[:, 0])
-        self.grid_search_rf(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        #self.gaussian(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        #self.svc(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        #self.decision_tree(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        #self.knn_nca(X_train, X_test, y_train[:, 0], y_test[:, 0])
+        best_params, score = self.grid_search_rf(parameters, X_train, X_test, y_train[:, 0], y_test[:, 0])
+        return best_params, score
 
     def gaussian(self, X_train, X_test, y_train, y_test):
         start = time.time()
@@ -89,13 +90,12 @@ class Models:
         print('\nKNN & NCA: {}'.format(score))
         self.appMetrics.nca_knnScore = score
 
-    def grid_search_rf(self, X_train, X_test, y_train, y_test):
+    def grid_search_rf(self, parameters, X_train, X_test, y_train, y_test):
         print('\nRandom forest:')
         start = time.time()
         if self.useGridSearch:
             print('\nGridSearchCV:\n')
-            parameters = [{'n_estimators': [500, 1000, 2000], 'criterion': ['gini', 'entropy'],
-                           'max_features': ['sqrt', 'log2']}]
+
             grid_search = GridSearchCV(estimator=RandomForestClassifier(), param_grid=parameters,
                                        scoring='accuracy', cv=10, n_jobs=-1, verbose=10)
             grid_search.fit(X_train, y_train)
@@ -106,19 +106,23 @@ class Models:
             print(out)
             self.appMetrics.gridSearchMetrics = out
             print('Executing Random Forest with best paramaters...')
-            self.random_forest(X_train, X_test, y_train, y_test, grid_search.best_params_)
+            return grid_search.best_params_, self.random_forest(X_train, X_test, y_train, y_test, grid_search.best_params_)
+
         else:
             params = {'n_estimators': 500, 'criterion': 'entropy', 'max_features': 'sqrt'}
             self.random_forest(X_train, X_test, y_train, y_test, params)
+            return params, 0
 
     def random_forest(self, X_train, X_test, y_train, y_test, params):
         start = time.time()
         clf = make_pipeline(StandardScaler(), RandomForestClassifier(**params, n_jobs=-1, verbose=1))
         clf.fit(X_train, y_train)
         self.appMetrics.random_forestPerf = time.time() - start
-        score = '{}%'.format(clf.score(X_test, y_test) * 100)
-        print('\nRandom Forest: {}'.format(score))
-        self.appMetrics.random_forestScore = score
+        score = clf.score(X_test, y_test)
+        formatted_score = '{}%'.format(score * 100)
+        print('\nRandom Forest: {}'.format(formatted_score))
+        self.appMetrics.random_forestScore = formatted_score
+        return formatted_score
 
     def reshape_y_data(self, y_data):
         return self.labelEncoder.transform(y_data).reshape(-1, 1)

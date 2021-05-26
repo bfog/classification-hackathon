@@ -9,6 +9,7 @@ def run(args):
 
     data = data_set.DcsData(args, appMetrics)
     data.run()
+    #data.run_batch()
 
     appMetrics.write()
 
@@ -23,7 +24,10 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--window_size', type=int, default=300, help='Sliding window size')
     parser.add_argument('-s', '--step_size', type=int, default=100, help='Step size')
     parser.add_argument('-t', '--test_size', type=float, default=0.2, help='Test split size')
-    parser.add_argument('-g', '--grid_search', help='Use GridSearchCV to optimise model parameters, takes long time to run', action='store_true')
+    parser.add_argument('-g', '--grid_search',
+                        help='Use GridSearchCV to optimise model parameters, takes long time to run', action='store_true')
+    parser.add_argument('-mlt', '--ml_tool', choices=['sklearn', 'keras'],
+                        default='sklearn', help='Which machine learning tooling to use')
 
     run(parser.parse_args())
 
